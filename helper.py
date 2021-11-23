@@ -69,8 +69,51 @@ def upload_debian_to_host(arch, package_name, host_name):
 
     run_command(f"scp {path_to_tedge} {host_name}:.")
 
+def cached_debian_packages(cache) -> bool :
+    for package in TEDGE_PACKAGES:
+        for file in os.listdir("/tmp"):
+            if f"{package}_{cache}" in file:
+                return True
+    return False
+
+def cache_debian_packages(tag, arch, package_name):
+    path_to_tedge = os.getenv("TEDGE_DIR")
+    assert path_to_tedge
+
+    path_to_tedge = os.path.join(path_to_tedge)
+    path_to_tedge += f"/target/{arch}/debian/"
+    for filename in os.listdir(path_to_tedge):
+        file_version_onwards = filename.split(f"{package_name}_")
+
+        if len(file_version_onwards) < 2:
+            continue
+        else:
+            file_version_onwards = file_version_onwards[1]
+
+        if file_version_onwards[0].isdigit():
+            path_to_tedge += filename
+            break
+    new_name = path_to_tedge.split("/")[-1].replace(package_name, f"{package_name}_{tag}")
+    run_command(f"cp {path_to_tedge} /tmp/{new_name}")
 
 
+
+def upload_debian_to_host_from_cache(package_name, host_name, tag):
+
+    path_to_tedge = "/tmp/"
+    for filename in os.listdir(path_to_tedge):
+        file_version_onwards = filename.split(f"{package_name}_{tag}_")
+
+        if len(file_version_onwards) < 2:
+            continue
+        else:
+            file_version_onwards = file_version_onwards[1]
+
+        if file_version_onwards[0].isdigit():
+            path_to_tedge += filename
+            break
+
+    run_command(f"scp {path_to_tedge} {host_name}:.")
 
 
 class CrossCommandBuilder:
